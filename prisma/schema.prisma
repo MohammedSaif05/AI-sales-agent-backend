@@ -1,0 +1,266 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum SystemRole {
+  USER
+  SUPER_ADMIN
+}
+
+enum BusinessRole {
+  OWNER
+  STAFF
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNSPECIFIED
+}
+
+enum CustomerSource {
+  MANUAL
+  CSV
+  EXCEL
+  IMAGE
+  IMPORT
+  WHATSAPP
+  CAMPAIGN
+}
+
+enum FileCategory {
+  LOGO
+  CUSTOMER_IMPORT
+}
+
+enum ImportType {
+  CSV
+  EXCEL
+  IMAGE
+}
+
+enum ImportStatus {
+  PENDING
+  PARSING
+  PREVIEW_READY
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ImportRowStatus {
+  VALID
+  INVALID
+  DUPLICATE
+}
+
+model User {
+  id           String      @id @default(uuid())
+  phone        String      @unique // Canonical E.164: +91XXXXXXXXXX
+  passwordHash String
+  name         String?
+  systemRole   SystemRole  @default(USER)
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  sessions      UserSession[]
+  businessUsers BusinessUser[]
+  fileUploads   FileUpload[]
+  imports       CustomerImport[]
+
+  @@index([phone])
+}
+
+model UserSession {
+  id               String   @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  deviceInfo       String?
+  ipAddress        String?
+  userAgent        String?
+  isRevoked        Boolean  @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Business {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String   // Canonical contact
+  address     String
+  city        String
+  state       String
+  country     String   @default("India")
+  pincode     String
+  logoKey     String?  // R2 storage key
+  email       String?
+  website     String?
+  instagram   String?
+  facebook    String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  businessUsers BusinessUser[]
+  hours         BusinessHours[]
+  customers     Customer[]
+  fileUploads   FileUpload[]
+  imports       CustomerImport[]
+
+  @@index([phone])
+}
+
+model BusinessUser {
+  id         String       @id @default(uuid())
+  businessId String
+  userId     String
+  role       BusinessRole @default(OWNER)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([userId])
+  @@index([businessId])
+}
+
+model BusinessHours {
+  id         String   @id @default(uuid())
+  businessId String
+  dayOfWeek  Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  openTime   String?  // HH:mm (e.g. "10:00")
+  closeTime  String?  // HH:mm (e.g. "21:00")
+  isClosed   Boolean  @default(false)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, dayOfWeek])
+}
+
+model Customer {
+  id              String         @id @default(uuid())
+  businessId      String
+  name            String
+  rawPhone        String
+  normalizedPhone String         // Canonical E.164
+  email           String?
+  gender          Gender?        @default(UNSPECIFIED)
+  dob             DateTime?
+  address         String?
+  city            String?
+  source          CustomerSource @default(MANUAL)
+  importId        String?
+  deletedAt       DateTime?      // Soft delete
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  business    Business                         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  import      CustomerImport?                  @relation(fields: [importId], references: [id], onDelete: SetNull)
+  preferences CustomerCommunicationPreferences?
+
+  @@index([businessId, deletedAt])
+  @@index([businessId, normalizedPhone])
+  @@index([businessId, name])
+  @@index([businessId, createdAt])
+}
+
+model CustomerCommunicationPreferences {
+  id                String   @id @default(uuid())
+  customerId        String   @unique
+  whatsappMarketing Boolean  @default(false)
+  voiceMarketing    Boolean  @default(false)
+  emailMarketing    Boolean  @default(false)
+  doNotContact      Boolean  @default(false)
+  consentSource     String?  @default("ONBOARDING_NO_CONSENT")
+  consentTimestamp  DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model FileUpload {
+  id           String       @id @default(uuid())
+  businessId   String
+  fileName     String
+  fileType     String       // MIME type
+  storageKey   String       @unique // Cloudflare R2 key
+  fileSize     Int          // bytes
+  category     FileCategory
+  uploadedById String
+  createdAt    DateTime     @default(now())
+
+  business   Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  uploadedBy User             @relation(fields: [uploadedById], references: [id])
+  imports    CustomerImport[]
+
+  @@index([businessId])
+}
+
+model CustomerImport {
+  id             String       @id @default(uuid())
+  businessId     String
+  fileId         String?
+  importType     ImportType
+  status         ImportStatus @default(PENDING)
+  totalRows      Int          @default(0)
+  validRows      Int          @default(0)
+  invalidRows    Int          @default(0)
+  duplicateRows  Int          @default(0)
+  errorSummary   String?
+  idempotencyKey String?      @unique
+  createdById    String
+  createdAt      DateTime     @default(now())
+  completedAt    DateTime?
+
+  business  Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  file      FileUpload?         @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  createdBy User                @relation(fields: [createdById], references: [id])
+  rows      CustomerImportRow[]
+  customers Customer[]
+
+  @@index([businessId, status])
+}
+
+model CustomerImportRow {
+  id                String          @id @default(uuid())
+  importId          String
+  rowNumber         Int
+  rawName           String?
+  rawPhone          String?
+  rawEmail          String?
+  rawGender         String?
+  rawDob            String?
+  rawCity           String?
+  rawAddress        String?
+  normalizedName    String?
+  normalizedPhone   String?
+  normalizedEmail   String?
+  normalizedGender  Gender?
+  normalizedDob     DateTime?
+  normalizedCity    String?
+  normalizedAddress String?
+  status            ImportRowStatus @default(VALID)
+  validationErrors  Json?           // Array of error messages
+  isDuplicate       Boolean         @default(false)
+  duplicateReason   String?         // e.g. "Existing customer in business", "Duplicate row #12 in file"
+
+  import CustomerImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([importId, status])
+}
