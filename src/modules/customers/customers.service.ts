@@ -4,8 +4,10 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { CustomerSource, Prisma } from '@prisma/client';
+import { AnalyticsCacheService } from '../../common/services/analytics-cache.service';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
 import { PhoneNormalizer } from '../../common/utils/phone-normalizer.util';
 import { PrismaService } from '../../database/prisma.service';
@@ -17,7 +19,10 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 export class CustomersService {
   private readonly logger = new Logger(CustomersService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly cacheService?: AnalyticsCacheService,
+  ) {}
 
   /**
    * Creates a new customer for the business with phone normalization and duplicate prevention
@@ -62,7 +67,7 @@ export class CustomersService {
 
     if (previouslyDeleted) {
       // Restore customer record
-      return this.prisma.$transaction(async (tx) => {
+      const restoredResult = await this.prisma.$transaction(async (tx) => {
         const restored = await tx.customer.update({
           where: { id: previouslyDeleted.id },
           data: {
@@ -106,10 +111,13 @@ export class CustomersService {
           include: { preferences: true },
         });
       });
+
+      await this.cacheService?.invalidateTenantAnalystCache(businessId);
+      return restoredResult;
     }
 
     // Standard creation in transaction
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const customer = await tx.customer.create({
         data: {
           businessId,
@@ -137,11 +145,16 @@ export class CustomersService {
         },
       });
 
-      return tx.customer.findUnique({
+      const createdCustomer = await tx.customer.findUnique({
         where: { id: customer.id },
         include: { preferences: true },
       });
+
+      return createdCustomer;
     });
+
+    await this.cacheService?.invalidateTenantAnalystCache(businessId);
+    return result;
   }
 
   /**
@@ -272,9 +285,10 @@ export class CustomersService {
       }
     }
 
-    const parsedDob = dto.dob !== undefined ? (dto.dob ? new Date(dto.dob) : null) : undefined;
+    const parsedDob =
+      dto.dob !== undefined ? (dto.dob ? new Date(dto.dob) : null) : undefined;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       await tx.customer.update({
         where: { id },
         data: {
@@ -317,6 +331,9 @@ export class CustomersService {
         include: { preferences: true },
       });
     });
+
+    await this.cacheService?.invalidateTenantAnalystCache(businessId);
+    return result;
   }
 
   /**
@@ -329,6 +346,8 @@ export class CustomersService {
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    await this.cacheService?.invalidateTenantAnalystCache(businessId);
 
     return {
       success: true,

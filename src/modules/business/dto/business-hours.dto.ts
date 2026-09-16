@@ -16,14 +16,20 @@ import {
 } from 'class-validator';
 
 export class BusinessHoursItemDto {
-  @ApiProperty({ example: 1, description: 'Day of week: 0 = Sunday, 1 = Monday, ..., 6 = Saturday' })
+  @ApiProperty({
+    example: 1,
+    description: 'Day of week: 0 = Sunday, 1 = Monday, ..., 6 = Saturday',
+  })
   @IsNotEmpty()
   @IsInt()
   @Min(0)
   @Max(6)
   dayOfWeek: number;
 
-  @ApiPropertyOptional({ example: '10:00', description: 'Opening time in 24h format HH:mm' })
+  @ApiPropertyOptional({
+    example: '10:00',
+    description: 'Opening time in 24h format HH:mm',
+  })
   @IsOptional()
   @IsString()
   @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, {
@@ -31,7 +37,10 @@ export class BusinessHoursItemDto {
   })
   openTime?: string | null;
 
-  @ApiPropertyOptional({ example: '21:00', description: 'Closing time in 24h format HH:mm' })
+  @ApiPropertyOptional({
+    example: '21:00',
+    description: 'Closing time in 24h format HH:mm',
+  })
   @IsOptional()
   @IsString()
   @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, {
@@ -39,7 +48,10 @@ export class BusinessHoursItemDto {
   })
   closeTime?: string | null;
 
-  @ApiProperty({ example: false, description: 'True if store is closed on this day' })
+  @ApiProperty({
+    example: false,
+    description: 'True if store is closed on this day',
+  })
   @IsNotEmpty()
   @IsBoolean()
   isClosed: boolean;

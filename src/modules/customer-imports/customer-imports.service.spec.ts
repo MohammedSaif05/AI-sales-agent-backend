@@ -97,7 +97,8 @@ Bad Entry,12345,,`;
 
       // Verify staged rows call
       expect(prisma.customerImportRow.createMany).toHaveBeenCalled();
-      const stagedData = prisma.customerImportRow.createMany.mock.calls[0][0].data;
+      const stagedData =
+        prisma.customerImportRow.createMany.mock.calls[0][0].data;
 
       expect(stagedData).toHaveLength(4);
 
@@ -110,7 +111,9 @@ Bad Entry,12345,,`;
       expect(stagedData[1].rawName).toBe('Ananya Sen');
       expect(stagedData[1].normalizedPhone).toBe('+919876543210');
       expect(stagedData[1].status).toBe(ImportRowStatus.DUPLICATE);
-      expect(stagedData[1].duplicateReason).toContain('already appeared earlier in row');
+      expect(stagedData[1].duplicateReason).toContain(
+        'already appeared earlier in row',
+      );
 
       // Row 3: Valid Rohit Kumar
       expect(stagedData[2].normalizedPhone).toBe('+919876543211');
@@ -218,7 +221,9 @@ Bad Entry,12345,,`;
         }),
       );
 
-      expect(prisma.customerCommunicationPreferences.create).toHaveBeenCalledWith(
+      expect(
+        prisma.customerCommunicationPreferences.create,
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             whatsappMarketing: false,

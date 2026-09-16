@@ -1,12 +1,10 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
-  ConflictException,
-  forwardRef,
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   CustomerSource,
@@ -21,6 +19,7 @@ import { parse } from 'csv-parse/sync';
 import { randomUUID } from 'crypto';
 import * as xlsx from 'xlsx';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
+import { AnalyticsCacheService } from '../../common/services/analytics-cache.service';
 import { PhoneNormalizer } from '../../common/utils/phone-normalizer.util';
 import { PrismaService } from '../../database/prisma.service';
 import { AIService } from '../ai/ai.service';
@@ -48,6 +47,8 @@ export class CustomerImportsService {
     private readonly aiService: AIService,
     @InjectQueue('customer-imports')
     private readonly importQueue: Queue,
+    @Optional()
+    private readonly cacheService?: AnalyticsCacheService,
   ) {}
 
   /**
@@ -166,7 +167,11 @@ export class CustomerImportsService {
     const ext = file.originalname.split('.').pop() || 'jpg';
     const storageKey = `businesses/${businessId}/imports/${importId}/${randomUUID()}.${ext}`;
 
-    await this.storageService.uploadBuffer(storageKey, file.buffer, file.mimetype);
+    await this.storageService.uploadBuffer(
+      storageKey,
+      file.buffer,
+      file.mimetype,
+    );
 
     await this.prisma.$transaction(async (tx) => {
       const fileUpload = await tx.fileUpload.create({
@@ -226,7 +231,10 @@ export class CustomerImportsService {
         try {
           await this.processImportJob({ importId, businessId }, buffer);
         } catch (jobErr) {
-          this.logger.error(`Direct async processing failed for ${importId}`, jobErr);
+          this.logger.error(
+            `Direct async processing failed for ${importId}`,
+            jobErr,
+          );
         }
       });
     }
@@ -267,7 +275,9 @@ export class CustomerImportsService {
       }
 
       if (!fileBuffer) {
-        throw new Error('File content could not be retrieved from object storage');
+        throw new Error(
+          'File content could not be retrieved from object storage',
+        );
       }
 
       let rawRows: RawRowData[] = [];
@@ -298,7 +308,9 @@ export class CustomerImportsService {
         where: { businessId, deletedAt: null },
         select: { normalizedPhone: true },
       });
-      const existingPhones = new Set(existingCustomers.map((c) => c.normalizedPhone));
+      const existingPhones = new Set(
+        existingCustomers.map((c) => c.normalizedPhone),
+      );
 
       // Track phones seen within this file to detect intra-file duplicates
       const seenPhonesInFile = new Set<string>();
@@ -457,7 +469,9 @@ export class CustomerImportsService {
         data: {
           status: ImportStatus.FAILED,
           errorSummary:
-            err instanceof Error ? err.message : 'Unknown parsing error occurred',
+            err instanceof Error
+              ? err.message
+              : 'Unknown parsing error occurred',
         },
       });
     }
@@ -582,7 +596,7 @@ export class CustomerImportsService {
     dto: ConfirmImportDto,
     idempotencyKey?: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const record = await tx.customerImport.findUnique({
         where: { id: importId },
       });
@@ -596,7 +610,9 @@ export class CustomerImportsService {
 
       // Idempotency check: If already COMPLETED, return current state safely
       if (record.status === ImportStatus.COMPLETED) {
-        this.logger.log(`Import ${importId} is already completed. Returning idempotent success.`);
+        this.logger.log(
+          `Import ${importId} is already completed. Returning idempotent success.`,
+        );
         return {
           importId,
           status: ImportStatus.COMPLETED,
@@ -721,6 +737,9 @@ export class CustomerImportsService {
         importedCount: insertedCount,
       };
     });
+
+    await this.cacheService?.invalidateTenantAnalystCache(businessId);
+    return result;
   }
 
   // --- Parsing Helpers ---

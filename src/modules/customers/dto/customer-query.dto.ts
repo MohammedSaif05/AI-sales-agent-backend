@@ -10,7 +10,10 @@ export class CustomerQueryDto extends PaginationQueryDto {
   @IsEnum(Gender)
   gender?: Gender;
 
-  @ApiPropertyOptional({ enum: CustomerSource, description: 'Filter by customer acquisition source' })
+  @ApiPropertyOptional({
+    enum: CustomerSource,
+    description: 'Filter by customer acquisition source',
+  })
   @IsOptional()
   @IsEnum(CustomerSource)
   source?: CustomerSource;

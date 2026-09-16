@@ -328,7 +328,9 @@ describe('Feature 01: Full Production E2E Verification', () => {
         .set('Authorization', `Bearer ${ownerAToken}`)
         .expect(200);
 
-      const found = listRes.body.data.items?.find((c: any) => c.id === customerAId);
+      const found = listRes.body.data.items?.find(
+        (c: any) => c.id === customerAId,
+      );
       expect(found).toBeUndefined();
     });
 

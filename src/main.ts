@@ -21,7 +21,11 @@ async function bootstrap() {
   const corsOrigins = configService.get<string>('CORS_ORIGINS');
   const allowedOrigins = corsOrigins
     ? corsOrigins.split(',').map((o) => o.trim())
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'];
+    : [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:5173',
+      ];
 
   app.enableCors({
     origin: allowedOrigins,
@@ -78,11 +82,26 @@ Canonical backend API contract for:
       },
       'bearer',
     )
-    .addTag('Authentication', 'Owner registration, login, multi-device sessions & token rotation')
-    .addTag('Business Profile & Hours', 'Store information, Cloudflare R2 logo upload & 7-day schedule')
-    .addTag('Customer Management', 'Customer CRUD, phone normalization, soft deletes & marketing consent')
-    .addTag('Customer Imports', 'CSV, Excel and AI vision customer extraction with staged preview & idempotent confirm')
-    .addTag('Super Admin', 'Platform metrics, cross-tenant business and customer inspection')
+    .addTag(
+      'Authentication',
+      'Owner registration, login, multi-device sessions & token rotation',
+    )
+    .addTag(
+      'Business Profile & Hours',
+      'Store information, Cloudflare R2 logo upload & 7-day schedule',
+    )
+    .addTag(
+      'Customer Management',
+      'Customer CRUD, phone normalization, soft deletes & marketing consent',
+    )
+    .addTag(
+      'Customer Imports',
+      'CSV, Excel and AI vision customer extraction with staged preview & idempotent confirm',
+    )
+    .addTag(
+      'Super Admin',
+      'Platform metrics, cross-tenant business and customer inspection',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
@@ -97,8 +116,12 @@ Canonical backend API contract for:
   const port = configService.get<number>('PORT') || 3000;
   await app.listen(port);
 
-  logger.log(`🚀 Sales Assistant Backend running on http://localhost:${port}/${apiPrefix}`);
-  logger.log(`📚 Swagger OpenAPI Documentation available at http://localhost:${port}/api/docs`);
+  logger.log(
+    `🚀 Sales Assistant Backend running on http://localhost:${port}/${apiPrefix}`,
+  );
+  logger.log(
+    `📚 Swagger OpenAPI Documentation available at http://localhost:${port}/api/docs`,
+  );
 }
 
-bootstrap();
+void bootstrap();

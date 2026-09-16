@@ -82,7 +82,9 @@ describe('CustomersService', () => {
       );
 
       // Verify default marketing consent is FALSE
-      expect(prisma.customerCommunicationPreferences.create).toHaveBeenCalledWith(
+      expect(
+        prisma.customerCommunicationPreferences.create,
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             whatsappMarketing: false,

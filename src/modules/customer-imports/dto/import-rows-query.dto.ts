@@ -6,7 +6,8 @@ import { PaginationQueryDto } from '../../../common/dto/pagination.dto';
 export class ImportRowsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({
     enum: ImportRowStatus,
-    description: 'Filter staged preview rows by status (VALID, INVALID, DUPLICATE)',
+    description:
+      'Filter staged preview rows by status (VALID, INVALID, DUPLICATE)',
   })
   @IsOptional()
   @IsEnum(ImportRowStatus)

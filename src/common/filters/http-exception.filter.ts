@@ -49,7 +49,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
           (resObj.errorCode as string) ||
           (resObj.error as string) ||
           this.statusToErrorCode(status);
-        details = resObj.details || (Array.isArray(resObj.message) ? resObj.message : null);
+        details =
+          resObj.details ||
+          (Array.isArray(resObj.message) ? resObj.message : null);
 
         // If message was an array of validation errors from class-validator
         if (Array.isArray(resObj.message)) {

@@ -94,12 +94,42 @@ export class AuthService {
       // Default 7-day schedule (10:00 - 21:00 Mon-Sat, Sun closed)
       const defaultHours = [
         { dayOfWeek: 0, openTime: null, closeTime: null, isClosed: true }, // Sunday
-        { dayOfWeek: 1, openTime: '10:00', closeTime: '21:00', isClosed: false }, // Monday
-        { dayOfWeek: 2, openTime: '10:00', closeTime: '21:00', isClosed: false }, // Tuesday
-        { dayOfWeek: 3, openTime: '10:00', closeTime: '21:00', isClosed: false }, // Wednesday
-        { dayOfWeek: 4, openTime: '10:00', closeTime: '21:00', isClosed: false }, // Thursday
-        { dayOfWeek: 5, openTime: '10:00', closeTime: '21:00', isClosed: false }, // Friday
-        { dayOfWeek: 6, openTime: '10:00', closeTime: '21:00', isClosed: false }, // Saturday
+        {
+          dayOfWeek: 1,
+          openTime: '10:00',
+          closeTime: '21:00',
+          isClosed: false,
+        }, // Monday
+        {
+          dayOfWeek: 2,
+          openTime: '10:00',
+          closeTime: '21:00',
+          isClosed: false,
+        }, // Tuesday
+        {
+          dayOfWeek: 3,
+          openTime: '10:00',
+          closeTime: '21:00',
+          isClosed: false,
+        }, // Wednesday
+        {
+          dayOfWeek: 4,
+          openTime: '10:00',
+          closeTime: '21:00',
+          isClosed: false,
+        }, // Thursday
+        {
+          dayOfWeek: 5,
+          openTime: '10:00',
+          closeTime: '21:00',
+          isClosed: false,
+        }, // Friday
+        {
+          dayOfWeek: 6,
+          openTime: '10:00',
+          closeTime: '21:00',
+          isClosed: false,
+        }, // Saturday
       ];
 
       for (const h of defaultHours) {

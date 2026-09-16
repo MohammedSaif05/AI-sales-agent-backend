@@ -2,12 +2,19 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class RegisterOwnerDto {
-  @ApiProperty({ example: '+919876543210', description: 'Owner mobile number (Indian standard)' })
+  @ApiProperty({
+    example: '+919876543210',
+    description: 'Owner mobile number (Indian standard)',
+  })
   @IsNotEmpty()
   @IsString()
   phone: string;
 
-  @ApiProperty({ example: 'SecurePassword123!', minLength: 8, description: 'Owner account password' })
+  @ApiProperty({
+    example: 'SecurePassword123!',
+    minLength: 8,
+    description: 'Owner account password',
+  })
   @IsNotEmpty()
   @IsString()
   @MinLength(8)
@@ -18,12 +25,18 @@ export class RegisterOwnerDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ example: 'Sharma Textiles', description: 'Business display name' })
+  @ApiProperty({
+    example: 'Sharma Textiles',
+    description: 'Business display name',
+  })
   @IsNotEmpty()
   @IsString()
   businessName: string;
 
-  @ApiProperty({ example: 'Shop 12, Fashion Street, Commercial Road', description: 'Physical store address' })
+  @ApiProperty({
+    example: 'Shop 12, Fashion Street, Commercial Road',
+    description: 'Physical store address',
+  })
   @IsNotEmpty()
   @IsString()
   businessAddress: string;
@@ -43,7 +56,10 @@ export class RegisterOwnerDto {
   @IsString()
   businessState?: string = 'Maharashtra';
 
-  @ApiPropertyOptional({ example: 'contact@sharmatextiles.com', description: 'Business email' })
+  @ApiPropertyOptional({
+    example: 'contact@sharmatextiles.com',
+    description: 'Business email',
+  })
   @IsOptional()
   @IsString()
   businessEmail?: string;

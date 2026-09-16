@@ -92,7 +92,8 @@ export class CustomerImportsController {
   @Get()
   @ApiOperation({
     summary: 'List Store Import History',
-    description: 'Returns past import jobs for this business with counts and statuses.',
+    description:
+      'Returns past import jobs for this business with counts and statuses.',
   })
   @ApiResponse({ status: 200, description: 'Import history' })
   async getHistory(
@@ -100,7 +101,11 @@ export class CustomerImportsController {
     @Query('page') page = 1,
     @Query('limit') limit = 10,
   ) {
-    return this.importsService.getImportHistory(businessId, Number(page), Number(limit));
+    return this.importsService.getImportHistory(
+      businessId,
+      Number(page),
+      Number(limit),
+    );
   }
 
   @Get(':id')
@@ -146,7 +151,10 @@ export class CustomerImportsController {
     description: 'Unique client request token to guarantee idempotency',
   })
   @ApiResponse({ status: 200, description: 'Customers successfully imported' })
-  @ApiResponse({ status: 400, description: 'Import is not in PREVIEW_READY status' })
+  @ApiResponse({
+    status: 400,
+    description: 'Import is not in PREVIEW_READY status',
+  })
   async confirm(
     @CurrentBusinessId() businessId: string,
     @CurrentUser('userId') userId: string,

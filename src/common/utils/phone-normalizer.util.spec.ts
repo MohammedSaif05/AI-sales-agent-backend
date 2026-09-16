@@ -80,7 +80,9 @@ describe('PhoneNormalizer', () => {
     });
 
     it('toCanonicalOrThrow() should return string or throw', () => {
-      expect(PhoneNormalizer.toCanonicalOrThrow('9876543210')).toBe('+919876543210');
+      expect(PhoneNormalizer.toCanonicalOrThrow('9876543210')).toBe(
+        '+919876543210',
+      );
       expect(() => PhoneNormalizer.toCanonicalOrThrow('abc')).toThrow();
     });
   });

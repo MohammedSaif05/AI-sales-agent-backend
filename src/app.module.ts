@@ -12,6 +12,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BusinessModule } from './modules/business/business.module';
+import { BusinessAnalystModule } from './modules/business-analyst/business-analyst.module';
 import { CustomerImportsModule } from './modules/customer-imports/customer-imports.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { AppQueueModule } from './modules/queue/queue.module';
@@ -41,6 +42,7 @@ import { StorageModule } from './modules/storage/storage.module';
     BusinessModule,
     CustomersModule,
     CustomerImportsModule,
+    BusinessAnalystModule,
     AdminModule,
   ],
   controllers: [AppController],

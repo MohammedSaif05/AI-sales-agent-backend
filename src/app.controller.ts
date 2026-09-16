@@ -10,7 +10,10 @@ export class AppController {
 
   @Public()
   @Get()
-  @ApiOperation({ summary: 'API Health Check', description: 'Returns system status' })
+  @ApiOperation({
+    summary: 'API Health Check',
+    description: 'Returns system status',
+  })
   @ApiResponse({ status: 200, description: 'API is running' })
   getHello() {
     return this.appService.getHello();

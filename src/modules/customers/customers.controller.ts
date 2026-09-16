@@ -86,7 +86,10 @@ export class CustomersController {
       'Updates customer contact details, profile, or communication preferences.',
   })
   @ApiResponse({ status: 200, description: 'Customer updated successfully' })
-  @ApiResponse({ status: 409, description: 'Updated phone number conflicts with another customer' })
+  @ApiResponse({
+    status: 409,
+    description: 'Updated phone number conflicts with another customer',
+  })
   async update(
     @CurrentBusinessId() businessId: string,
     @Param('id') id: string,
@@ -102,7 +105,10 @@ export class CustomersController {
     description:
       'Marks the customer as deleted (sets deletedAt) without breaking historic references.',
   })
-  @ApiResponse({ status: 200, description: 'Customer soft-deleted successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Customer soft-deleted successfully',
+  })
   @ApiResponse({ status: 404, description: 'Customer not found' })
   async remove(
     @CurrentBusinessId() businessId: string,

@@ -18,9 +18,14 @@ import { CustomerImportProcessor } from './customer-import.processor';
         },
       }),
     }),
-    BullModule.registerQueue({
-      name: 'customer-imports',
-    }),
+    BullModule.registerQueue(
+      {
+        name: 'customer-imports',
+      },
+      {
+        name: 'business-analysis',
+      },
+    ),
     forwardRef(() => CustomerImportsModule),
   ],
   providers: [CustomerImportProcessor],

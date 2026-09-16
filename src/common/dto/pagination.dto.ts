@@ -18,12 +18,17 @@ export class PaginationQueryDto {
   @Max(100)
   limit?: number = 20;
 
-  @ApiPropertyOptional({ description: 'Search term for name, phone, email, etc.' })
+  @ApiPropertyOptional({
+    description: 'Search term for name, phone, email, etc.',
+  })
   @IsOptional()
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Field to sort by', default: 'createdAt' })
+  @ApiPropertyOptional({
+    description: 'Field to sort by',
+    default: 'createdAt',
+  })
   @IsOptional()
   @IsString()
   sortBy?: string = 'createdAt';

@@ -43,7 +43,9 @@ export class BusinessService {
 
     let logoUrl: string | null = null;
     if (business.logoKey) {
-      logoUrl = await this.storageService.getSignedDownloadUrl(business.logoKey);
+      logoUrl = await this.storageService.getSignedDownloadUrl(
+        business.logoKey,
+      );
     }
 
     return {
@@ -157,8 +159,7 @@ export class BusinessService {
       });
     });
 
-    const logoUrl =
-      await this.storageService.getSignedDownloadUrl(storageKey);
+    const logoUrl = await this.storageService.getSignedDownloadUrl(storageKey);
 
     return {
       logoKey: storageKey,

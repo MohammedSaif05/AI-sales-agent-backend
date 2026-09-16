@@ -17,7 +17,8 @@ export class StorageService {
 
   constructor(private readonly configService: ConfigService) {
     const accountId = this.configService.get<string>('R2_ACCOUNT_ID') || '';
-    const accessKeyId = this.configService.get<string>('R2_ACCESS_KEY_ID') || '';
+    const accessKeyId =
+      this.configService.get<string>('R2_ACCESS_KEY_ID') || '';
     const secretAccessKey =
       this.configService.get<string>('R2_SECRET_ACCESS_KEY') || '';
     this.bucketName =
@@ -54,13 +55,17 @@ export class StorageService {
       });
 
       await this.s3Client.send(command);
-      this.logger.log(`Uploaded file to R2: key=${key} (${buffer.length} bytes)`);
+      this.logger.log(
+        `Uploaded file to R2: key=${key} (${buffer.length} bytes)`,
+      );
       return key;
     } catch (err: unknown) {
       this.logger.error(`Failed to upload file to R2: key=${key}`, err);
       // In development / testing without real credentials, return key so dev continues
       if (process.env.NODE_ENV !== 'production') {
-        this.logger.warn(`Dev mode fallback: returning storageKey without live R2 upload`);
+        this.logger.warn(
+          `Dev mode fallback: returning storageKey without live R2 upload`,
+        );
         return key;
       }
       throw new Error('Failed to upload file to object storage');
@@ -88,7 +93,9 @@ export class StorageService {
         expiresIn: expiresInSeconds,
       });
     } catch (err: unknown) {
-      this.logger.warn(`Could not generate presigned URL for key=${key}: ${err}`);
+      this.logger.warn(
+        `Could not generate presigned URL for key=${key}: ${err}`,
+      );
       return `https://storage.local/${key}`;
     }
   }

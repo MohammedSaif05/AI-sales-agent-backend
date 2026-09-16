@@ -60,6 +60,28 @@ enum ImportRowStatus {
   DUPLICATE
 }
 
+enum AnalysisType {
+  BUSINESS_SUMMARY
+  CUSTOMER_ANALYSIS
+  SALES_ANALYSIS
+  PRODUCT_ANALYSIS
+  CAMPAIGN_ANALYSIS
+  TREND_ANALYSIS
+}
+
+enum AnalysisStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum QuestionStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model User {
   id           String      @id @default(uuid())
   phone        String      @unique // Canonical E.164: +91XXXXXXXXXX
@@ -74,6 +96,8 @@ model User {
   businessUsers BusinessUser[]
   fileUploads   FileUpload[]
   imports       CustomerImport[]
+  analyses      BusinessAnalysis[] @relation("UserAnalyses")
+  questions     BusinessQuestion[] @relation("UserQuestions")
 
   @@index([phone])
 }
@@ -119,6 +143,8 @@ model Business {
   customers     Customer[]
   fileUploads   FileUpload[]
   imports       CustomerImport[]
+  analyses      BusinessAnalysis[] @relation("BusinessAnalyses")
+  questions     BusinessQuestion[] @relation("BusinessQuestions")
 
   @@index([phone])
 }
@@ -263,4 +289,53 @@ model CustomerImportRow {
   import CustomerImport @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   @@index([importId, status])
+}
+
+model BusinessAnalysis {
+  id                String         @id @default(uuid())
+  businessId        String
+  requestedByUserId String
+  analysisType      AnalysisType
+  periodFrom        DateTime
+  periodTo          DateTime
+  status            AnalysisStatus
+  summary           String?
+  resultJson        Json?
+  dataSnapshotJson  Json
+  idempotencyKey    String?
+  requestHash       String?
+  errorMessage      String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  completedAt       DateTime?
+
+  business    Business @relation("BusinessAnalyses", fields: [businessId], references: [id], onDelete: Cascade)
+  requestedBy User     @relation("UserAnalyses", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, idempotencyKey])
+  @@index([businessId, createdAt])
+  @@index([businessId, analysisType])
+  @@index([businessId, status])
+}
+
+model BusinessQuestion {
+  id             String         @id @default(uuid())
+  businessId     String
+  userId         String
+  question       String
+  answer         String?
+  contextJson    Json?
+  status         QuestionStatus
+  idempotencyKey String?
+  requestHash    String?
+  errorMessage   String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  business Business @relation("BusinessQuestions", fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation("UserQuestions", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, idempotencyKey])
+  @@index([businessId, createdAt])
+  @@index([businessId, userId])
 }

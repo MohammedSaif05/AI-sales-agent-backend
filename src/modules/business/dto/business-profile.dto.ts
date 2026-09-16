@@ -57,7 +57,9 @@ export class UpdateBusinessProfileDto {
   @IsString()
   facebook?: string;
 
-  @ApiPropertyOptional({ example: 'Premium ethnic and casual clothing store located in Mumbai.' })
+  @ApiPropertyOptional({
+    example: 'Premium ethnic and casual clothing store located in Mumbai.',
+  })
   @IsOptional()
   @IsString()
   description?: string;

@@ -95,7 +95,8 @@ export class AuthController {
   @Get('sessions')
   @ApiOperation({
     summary: 'List Active Login Sessions',
-    description: 'Retrieves all active devices/sessions for the authenticated user.',
+    description:
+      'Retrieves all active devices/sessions for the authenticated user.',
   })
   @ApiResponse({ status: 200, description: 'List of active sessions' })
   async getSessions(@CurrentUser('userId') userId: string) {
