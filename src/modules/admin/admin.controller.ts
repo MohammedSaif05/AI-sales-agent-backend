@@ -10,6 +10,10 @@ import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import {
+  AnalysisQueryDto,
+  QuestionQueryDto,
+} from '../business-analyst/dto/analysis-query.dto';
 import { AdminService } from './admin.service';
 
 @ApiTags('Super Admin')
@@ -86,4 +90,62 @@ export class AdminController {
   async getImportDetail(@Param('id') id: string) {
     return this.adminService.getImportDetail(id);
   }
+
+  @Get('businesses/:id/analyst-summary')
+  @ApiOperation({
+    summary: 'Inspect Business Analyst Summary',
+    description:
+      'Cross-tenant inspection of trailing 30-day business performance summary, verified metrics, insights, and recommendations.',
+  })
+  @ApiResponse({ status: 200, description: 'Business summary' })
+  @ApiResponse({ status: 404, description: 'Business not found' })
+  async getBusinessAnalystSummary(@Param('id') id: string) {
+    return this.adminService.getBusinessAnalystSummary(id);
+  }
+
+  @Get('businesses/:id/analyses')
+  @ApiOperation({
+    summary: 'Inspect Store Analysis History',
+    description:
+      'Cross-tenant paginated list of historical analytical reports for a business.',
+  })
+  @ApiResponse({ status: 200, description: 'Paginated analysis history' })
+  @ApiResponse({ status: 404, description: 'Business not found' })
+  async getBusinessAnalyses(
+    @Param('id') id: string,
+    @Query() query: AnalysisQueryDto,
+  ) {
+    return this.adminService.getBusinessAnalyses(id, query);
+  }
+
+  @Get('businesses/:id/analyses/:analysisId')
+  @ApiOperation({
+    summary: 'Inspect Store Analysis Detail',
+    description:
+      'Cross-tenant deep inspection of a specific analysis report, verified result, and timestamps.',
+  })
+  @ApiResponse({ status: 200, description: 'Analysis report details' })
+  @ApiResponse({ status: 404, description: 'Analysis or business not found' })
+  async getBusinessAnalysisDetail(
+    @Param('id') id: string,
+    @Param('analysisId') analysisId: string,
+  ) {
+    return this.adminService.getBusinessAnalysisDetail(id, analysisId);
+  }
+
+  @Get('businesses/:id/questions')
+  @ApiOperation({
+    summary: 'Inspect Store Business Question History',
+    description:
+      'Cross-tenant paginated list of natural language inquiries and answers for a business.',
+  })
+  @ApiResponse({ status: 200, description: 'Paginated question history' })
+  @ApiResponse({ status: 404, description: 'Business not found' })
+  async getBusinessQuestions(
+    @Param('id') id: string,
+    @Query() query: QuestionQueryDto,
+  ) {
+    return this.adminService.getBusinessQuestions(id, query);
+  }
 }
+

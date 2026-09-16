@@ -2,10 +2,18 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ImportStatus } from '@prisma/client';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { PrismaService } from '../../database/prisma.service';
+import { BusinessAnalystService } from '../business-analyst/business-analyst.service';
+import {
+  AnalysisQueryDto,
+  QuestionQueryDto,
+} from '../business-analyst/dto/analysis-query.dto';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly analystService: BusinessAnalystService,
+  ) {}
 
   /**
    * Platform-wide dashboard summary metrics for Super Admin
@@ -267,4 +275,37 @@ export class AdminService {
 
     return record;
   }
+
+  /**
+   * Super Admin inspection of latest business analyst summary for a store
+   */
+  async getBusinessAnalystSummary(businessId: string) {
+    await this.getBusinessDetail(businessId);
+    return this.analystService.getLatestSummary(businessId);
+  }
+
+  /**
+   * Super Admin inspection of business analysis reports history for a store
+   */
+  async getBusinessAnalyses(businessId: string, query: AnalysisQueryDto) {
+    await this.getBusinessDetail(businessId);
+    return this.analystService.getAnalysisHistory(businessId, query);
+  }
+
+  /**
+   * Super Admin deep inspection of a specific analysis record for a store
+   */
+  async getBusinessAnalysisDetail(businessId: string, analysisId: string) {
+    await this.getBusinessDetail(businessId);
+    return this.analystService.getAnalysis(businessId, analysisId);
+  }
+
+  /**
+   * Super Admin inspection of question history for a store
+   */
+  async getBusinessQuestions(businessId: string, query: QuestionQueryDto) {
+    await this.getBusinessDetail(businessId);
+    return this.analystService.getQuestionHistory(businessId, query);
+  }
 }
+
