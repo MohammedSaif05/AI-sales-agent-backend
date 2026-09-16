@@ -1,9 +1,230 @@
-Feature 02: AI Business Analyst Agent
-1. Feature Overview
-The AI Business Analyst Agent helps business owners understand their business performance through AI-powered analysis of business data.
-The agent should analyze available business information, identify meaningful patterns, generate understandable insights, and provide practical recommendations to improve sales, customer engagement, campaign performance, and overall business operations.
-This feature belongs to the AI Sales Campaign Agent for SMBs platform.
-The backend must be designed for a multi-tenant SaaS architecture where each business can access only its own data.
+# Feature 02: AI Business Analyst Agent
+
+> **Status:** IMPLEMENTATION COMPLETE AND VERIFIED  
+> **Active AI Model:** `gemini-3.1-flash-lite` (JSON Schema Structured Response Mode)  
+> **Source of Truth:** PostgreSQL (Aggregations via Prisma & SQL GroupBy)
+
+---
+
+## Technical API Specification & Verification
+
+### 1. API Endpoints
+
+| Method | Endpoint | Auth | Description | Status Codes |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/business-analyst/analysis` | Bearer | Generate business analysis synchronously or queue asynchronously via BullMQ | `201`, `202`, `400`, `404`, `409` |
+| `GET` | `/api/v1/business-analyst/analysis/:id` | Bearer | Retrieve specific verified analysis report by ID (Tenant isolated) | `200`, `404` |
+| `GET` | `/api/v1/business-analyst/analysis` | Bearer | Paginated analysis report history (Filter by `analysisType`, `status`) | `200` |
+| `GET` | `/api/v1/business-analyst/summary` | Bearer | Fast cached trailing 30-day dashboard summary cards | `200` |
+| `POST` | `/api/v1/business-analyst/questions` | Bearer | Ask natural-language business question (Grounded solely on backend facts) | `201`, `400`, `409` |
+| `GET` | `/api/v1/business-analyst/questions` | Bearer | Paginated history of past business questions and verified answers | `200` |
+
+---
+
+### 2. Request & Response Examples
+
+#### A. Generate Analysis (Synchronous)
+- **`POST /api/v1/business-analyst/analysis`**
+- **Headers:** `Authorization: Bearer <token>`, `Idempotency-Key: <key-128-chars>`
+- **Request Body:**
+```json
+{
+  "analysisType": "CUSTOMER_ANALYSIS",
+  "periodFrom": "2026-08-01T00:00:00.000Z",
+  "periodTo": "2026-08-31T00:00:00.000Z",
+  "isAsync": false
+}
+```
+- **Response (`201 Created`):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "c1f728c3-4d8b-47e2-a0ef-1f81e3a101b2",
+    "analysisType": "CUSTOMER_ANALYSIS",
+    "status": "COMPLETED",
+    "summary": "Customer base shows steady acquisition with strong WhatsApp marketing opt-in engagement.",
+    "result": {
+      "period": {
+        "from": "2026-08-01T00:00:00.000Z",
+        "to": "2026-08-31T00:00:00.000Z"
+      },
+      "metrics": [
+        {
+          "key": "totalActiveCustomers",
+          "name": "Total Active Customers",
+          "value": 150,
+          "unit": "customers",
+          "description": "Total non-deleted customers currently registered in store"
+        },
+        {
+          "key": "newCustomersInPeriod",
+          "name": "New Customers in Period",
+          "value": 30,
+          "unit": "customers"
+        },
+        {
+          "key": "cohortExpansionRatePercentage",
+          "name": "Cohort Expansion Rate",
+          "value": 25.0,
+          "unit": "%"
+        },
+        {
+          "key": "acquisitionVelocity",
+          "name": "Customer Acquisition Velocity",
+          "value": 1.0,
+          "unit": "customers/day"
+        },
+        {
+          "key": "whatsappMarketingOptInPercentage",
+          "name": "WhatsApp Marketing Opt-in",
+          "value": 80.0,
+          "unit": "%"
+        },
+        {
+          "key": "doNotContactPercentage",
+          "name": "Do Not Contact",
+          "value": 5.0,
+          "unit": "%"
+        }
+      ],
+      "insights": [
+        {
+          "title": "Strong Customer Base",
+          "description": "Store currently has 150 active customers registered.",
+          "category": "CUSTOMER_ACQUISITION",
+          "referencedMetricKey": "totalActiveCustomers",
+          "referencedMetricValue": 150,
+          "severity": "POSITIVE"
+        }
+      ],
+      "recommendations": [
+        {
+          "title": "Leverage WhatsApp Channel",
+          "action": "Prioritize upcoming festive offers through WhatsApp outreach.",
+          "rationale": "WhatsApp opt-in rate stands at 80% among active customers.",
+          "referencedMetricKey": "whatsappMarketingOptInPercentage",
+          "referencedMetricValue": 80.0,
+          "priority": "HIGH"
+        }
+      ],
+      "dataLimitations": [
+        "Sales transactions, orders, and revenue data are not yet integrated into the trusted database.",
+        "Product catalog and SKU inventory data are not yet integrated.",
+        "Marketing campaign execution metrics are not yet connected."
+      ]
+    },
+    "createdAt": "2026-09-16T15:00:00.000Z",
+    "completedAt": "2026-09-16T15:00:02.000Z"
+  }
+}
+```
+
+#### B. Generate Analysis (Asynchronous via BullMQ)
+- **`POST /api/v1/business-analyst/analysis`** with `"isAsync": true`
+- **Response (`202 Accepted`):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "d2e839f4-5e9c-48f3-b1fe-2f92f4b202c3",
+    "analysisType": "CUSTOMER_ANALYSIS",
+    "status": "QUEUED",
+    "message": "Analysis request has been queued for background processing. Poll status at /api/v1/business-analyst/analysis/d2e839f4-5e9c-48f3-b1fe-2f92f4b202c3"
+  }
+}
+```
+
+#### C. Ask Business Question
+- **`POST /api/v1/business-analyst/questions`**
+- **Request Body:**
+```json
+{
+  "question": "What is our customer opt-in rate for WhatsApp marketing?"
+}
+```
+- **Response (`201 Created`):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "e3f940a5-6f0d-49a4-c2af-3a03a5c303d4",
+    "question": "What is our customer opt-in rate for WhatsApp marketing?",
+    "answer": "Your store currently has an 80% WhatsApp marketing opt-in rate among active customers (120 out of 150 active customers opted in, excluding DNC records).",
+    "status": "COMPLETED",
+    "dataLimitations": [
+      "Sales transactions, orders, and revenue data are not yet integrated into the trusted database."
+    ],
+    "createdAt": "2026-09-16T15:01:00.000Z"
+  }
+}
+```
+
+---
+
+### 3. Supported Customer Metrics & Semantics
+
+| Metric Key | Description | Type / Unit |
+| :--- | :--- | :--- |
+| `totalActiveCustomers` | Total non-deleted customers for the business | `number` (count) |
+| `baselineCustomers` | Customers created strictly before `periodFrom` | `number` (count) |
+| `newCustomersInPeriod` | Customers created in `[periodFrom, periodTo)` | `number` (count) |
+| `cohortExpansionRatePercentage` | `(newCustomersInPeriod / baselineCustomers) * 100` (`null` if baseline=0) | `number \| null` (%) |
+| `acquisitionVelocity` | `newCustomersInPeriod / periodDurationInDays` | `number` (cust/day) |
+| `whatsappMarketingOptInPercentage` | Percentage of active customers opted into WhatsApp | `number` (%) |
+| `voiceMarketingOptInPercentage` | Percentage of active customers opted into Voice calls | `number` (%) |
+| `emailMarketingOptInPercentage` | Percentage of active customers opted into Email | `number` (%) |
+| `doNotContactPercentage` | Percentage of active customers with DNC enabled | `number` (%) |
+| `effectiveWhatsappEligibleCount` | WhatsApp opted-in customers excluding DNC | `number` (count) |
+| `effectiveVoiceEligibleCount` | Voice opted-in customers excluding DNC | `number` (count) |
+| `effectiveEmailEligibleCount` | Email opted-in customers excluding DNC | `number` (count) |
+| `genderDistribution` | Aggregated histogram: `{ MALE, FEMALE, OTHER, UNSPECIFIED }` | `Record<string, number>` |
+| `acquisitionSourceDistribution` | Aggregated histogram: `{ MANUAL, CSV, EXCEL, IMAGE, IMPORT }` | `Record<string, number>` |
+
+---
+
+### 4. Idempotency & Conflict Guard
+- **Header:** `Idempotency-Key` (Optional, 1-128 alphanumeric, `-`, `_`).
+- **Composite Key:** Enforced via PostgreSQL composite unique index `@@unique([businessId, idempotencyKey])`.
+- **Replay Behavior:**
+  - Same Tenant + Same Key + Same Payload $\rightarrow$ Replays previous analysis record without re-running AI.
+  - Same Tenant + Same Key + Different Payload $\rightarrow$ `409 Conflict` (`IDEMPOTENCY_KEY_REUSE_CONFLICT`).
+  - Different Tenant + Same Key $\rightarrow$ Processed independently without collision.
+
+---
+
+### 5. Redis Caching & Invalidation
+- **Summary Cache:** Key `tenant:{businessId}:analyst:summary`, TTL: 900 seconds.
+- **Report Cache:** Key `tenant:{businessId}:analyst:report:{type}:{from}:{to}`, TTL: 900 seconds.
+- **Invalidation:** Automatically triggered across all 8 customer mutation events:
+  1. Customer creation (`CustomersService.create`)
+  2. Customer update (`CustomersService.update`)
+  3. Customer soft-deletion (`CustomersService.softDelete`)
+  4. Customer restoration (`CustomersService.create` restore path)
+  5. Bulk customer import confirmation (`CustomerImportsService.confirmImport`)
+  6. Communication preferences update (`CustomersService.update`)
+  7. Marketing channel opt-in/out toggles (`CustomersService.update`)
+  8. Do-not-contact (DNC) flag toggles (`CustomersService.update`)
+
+---
+
+### 6. Stale Job Recovery Watchdog
+- Registered in [BusinessAnalystService](file:///d:/AI-sales-agent-backend/src/modules/business-analyst/business-analyst.service.ts) via `OnModuleInit`.
+- Executes on server startup and every 60 seconds in the background (`unref()` timer).
+- Automatically marks jobs stuck in `PROCESSING` status for over 5 minutes (`updatedAt < now - 5m`) as `FAILED` with safe error text.
+
+---
+
+### 7. Future Ingestion Modules Integration (Sales, Products, Campaigns)
+- Future modules connect directly to the existing typed collector interfaces:
+  - `SalesAnalyticsCollector` $\rightarrow$ Connects to future Sales/Orders database tables.
+  - `ProductAnalyticsCollector` $\rightarrow$ Connects to future Catalog/SKU inventory tables.
+  - `CampaignAnalyticsCollector` $\rightarrow$ Connects to future Outreach/Campaign execution tables.
+- Collectors currently return `isAvailable: false` with explicit, user-friendly `dataLimitations`.
+
+---
+
+# Original Requirements Specification
 
 2. Objective
 Build a secure and scalable backend module that allows an authenticated business owner to:
