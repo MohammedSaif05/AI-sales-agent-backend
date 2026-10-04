@@ -82,6 +82,50 @@ enum QuestionStatus {
   FAILED
 }
 
+enum WhatsAppConnectionStatus {
+  CONNECTED
+  DISCONNECTING
+  DISCONNECTED
+  FAILED
+}
+
+enum WhatsAppMessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum WhatsAppMessageType {
+  TEXT
+}
+
+enum WhatsAppMessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  DISPATCH_UNKNOWN
+}
+
+enum WhatsAppMessageFailureSource {
+  SYSTEM
+  PROVIDER
+  MANUAL_RESOLUTION
+}
+
+enum WhatsAppMessageResolutionSource {
+  PROVIDER_CONFIRMED
+  MANUAL_OPERATOR_ASSERTION
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  QUEUED
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
 model User {
   id           String      @id @default(uuid())
   phone        String      @unique // Canonical E.164: +91XXXXXXXXXX
@@ -145,6 +189,8 @@ model Business {
   imports       CustomerImport[]
   analyses      BusinessAnalysis[] @relation("BusinessAnalyses")
   questions     BusinessQuestion[] @relation("BusinessQuestions")
+  whatsappConnection WhatsAppConnection?
+  whatsappMessages   WhatsAppMessage[]
 
   @@index([phone])
 }
@@ -198,6 +244,7 @@ model Customer {
   business    Business                         @relation(fields: [businessId], references: [id], onDelete: Cascade)
   import      CustomerImport?                  @relation(fields: [importId], references: [id], onDelete: SetNull)
   preferences CustomerCommunicationPreferences?
+  whatsappMessages WhatsAppMessage[]
 
   @@index([businessId, deletedAt])
   @@index([businessId, normalizedPhone])
@@ -338,4 +385,83 @@ model BusinessQuestion {
   @@unique([businessId, idempotencyKey])
   @@index([businessId, createdAt])
   @@index([businessId, userId])
+}
+
+model WhatsAppConnection {
+  id                    String                   @id @default(uuid())
+  businessId            String                   @unique
+  wabaId                String                   // Meta WhatsApp Business Account ID
+  phoneNumberId         String                   // Meta Phone Number ID
+  displayPhoneNumber    String                   // Formatted phone number (e.g. +1 555-0100)
+  verifiedName          String?                  // Business name verified by Meta
+  qualityRating         String?                  // GREEN, YELLOW, RED, UNKNOWN
+  encryptedAccessToken  String                   // AES-256-GCM encrypted token
+  tokenExpiresAt        DateTime?                // Nullable if permanent token
+  status                WhatsAppConnectionStatus @default(CONNECTED)
+  connectionVersion     Int                      @default(1)
+  disconnectRequestedAt DateTime?
+  disconnectFinalizedAt DateTime?
+  disconnectReason      String?
+  lastSyncAt            DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  business Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  messages WhatsAppMessage[]
+
+  @@index([businessId, status])
+  @@index([phoneNumberId])
+  @@index([wabaId])
+}
+
+model WhatsAppMessage {
+  id                                String                           @id @default(uuid())
+  businessId                        String
+  connectionId                      String
+  customerId                        String?
+  providerPhoneNumberId             String                           // Meta Phone Number ID associated with message
+  direction                         WhatsAppMessageDirection
+  type                              WhatsAppMessageType              @default(TEXT)
+  status                            WhatsAppMessageStatus            @default(PENDING)
+  body                              String
+  providerMessageId                 String?                          @unique // Canonical Meta wamid (authoritative only)
+  manualResolutionProviderMessageId String?                          // Operator-supplied wamid (non-canonical, never correlates)
+  senderPhone                       String                           // E.164 sender
+  recipientPhone                    String                           // E.164 recipient
+  resolutionSource                  WhatsAppMessageResolutionSource?
+  resolvedAt                        DateTime?
+  resolvedByUserId                  String?
+  resolutionReason                  String?
+  failureReason                     String?
+  failureSource                     WhatsAppMessageFailureSource?
+  eventOriginTimestamp              DateTime?                        // Authoritative provider timestamp (null if missing/unparseable)
+  createdAt                         DateTime                         @default(now())
+  updatedAt                         DateTime                         @updatedAt
+
+  business   Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  connection WhatsAppConnection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  customer   Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status])
+  @@index([businessId, customerId])
+  @@index([providerMessageId, providerPhoneNumberId])
+  @@index([businessId, createdAt])
+  @@index([senderPhone])
+  @@index([recipientPhone])
+}
+
+model WhatsAppWebhookEvent {
+  id                    String             @id @default(uuid())
+  idempotencyKey        String             @unique // Hash of raw payload + timestamp + message/status ID
+  providerPhoneNumberId String?            // Extracted from entry[].changes[].value.metadata.phone_number_id
+  rawPayload            Json               // Full received webhook payload
+  eventOriginTimestamp  DateTime?          // Extracted provider timestamp
+  status                WebhookEventStatus @default(RECEIVED)
+  errorMessage          String?
+  attempts              Int                @default(0)
+  receivedAt            DateTime           @default(now())
+  processedAt           DateTime?
+
+  @@index([status, receivedAt])
+  @@index([providerPhoneNumberId])
 }

@@ -308,4 +308,3 @@ export class AdminService {
     return this.analystService.getQuestionHistory(businessId, query);
   }
 }
-

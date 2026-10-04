@@ -17,6 +17,7 @@ import { CustomerImportsModule } from './modules/customer-imports/customer-impor
 import { CustomersModule } from './modules/customers/customers.module';
 import { AppQueueModule } from './modules/queue/queue.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { StorageModule } from './modules/storage/storage.module';
     CustomerImportsModule,
     BusinessAnalystModule,
     AdminModule,
+    WhatsAppModule,
   ],
   controllers: [AppController],
   providers: [

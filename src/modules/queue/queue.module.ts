@@ -3,6 +3,8 @@ import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CustomerImportsModule } from '../customer-imports/customer-imports.module';
 import { CustomerImportProcessor } from './customer-import.processor';
+import { WhatsAppModule } from '../whatsapp/whatsapp.module';
+import { WhatsAppProcessor } from './whatsapp.processor';
 
 @Module({
   imports: [
@@ -25,10 +27,14 @@ import { CustomerImportProcessor } from './customer-import.processor';
       {
         name: 'business-analysis',
       },
+      {
+        name: 'whatsapp-communication',
+      },
     ),
     forwardRef(() => CustomerImportsModule),
+    forwardRef(() => WhatsAppModule),
   ],
-  providers: [CustomerImportProcessor],
-  exports: [BullModule, CustomerImportProcessor],
+  providers: [CustomerImportProcessor, WhatsAppProcessor],
+  exports: [BullModule, CustomerImportProcessor, WhatsAppProcessor],
 })
 export class AppQueueModule {}

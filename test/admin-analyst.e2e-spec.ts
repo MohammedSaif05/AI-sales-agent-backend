@@ -288,9 +288,9 @@ describe('Feature 02: Super Admin Backend APIs E2E Tests (Phase 1)', () => {
         .expect(200);
 
       expect(res.body.success).toBe(true);
-      expect(
-        res.body.data.every((a: any) => a.status === 'COMPLETED'),
-      ).toBe(true);
+      expect(res.body.data.every((a: any) => a.status === 'COMPLETED')).toBe(
+        true,
+      );
     });
 
     it('should return 404 BUSINESS_NOT_FOUND for invalid business ID', async () => {
@@ -306,9 +306,7 @@ describe('Feature 02: Super Admin Backend APIs E2E Tests (Phase 1)', () => {
   describe('4. GET /api/v1/admin/businesses/:id/analyses/:analysisId', () => {
     it('Super Admin should inspect specific analysis report detail', async () => {
       const res = await request(app.getHttpServer())
-        .get(
-          `/api/v1/admin/businesses/${businessAId}/analyses/${analysisAId}`,
-        )
+        .get(`/api/v1/admin/businesses/${businessAId}/analyses/${analysisAId}`)
         .set('Authorization', `Bearer ${superAdminToken}`)
         .expect(200);
 
@@ -321,9 +319,7 @@ describe('Feature 02: Super Admin Backend APIs E2E Tests (Phase 1)', () => {
 
     it('CROSS-TENANT ISOLATION: Super Admin requesting Analysis A under Business B URL must return 404', async () => {
       const res = await request(app.getHttpServer())
-        .get(
-          `/api/v1/admin/businesses/${businessBId}/analyses/${analysisAId}`,
-        )
+        .get(`/api/v1/admin/businesses/${businessBId}/analyses/${analysisAId}`)
         .set('Authorization', `Bearer ${superAdminToken}`)
         .expect(404);
 

@@ -148,4 +148,3 @@ export class AdminController {
     return this.adminService.getBusinessQuestions(id, query);
   }
 }
-
