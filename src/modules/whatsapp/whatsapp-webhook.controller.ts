@@ -7,8 +7,11 @@ import {
   HttpStatus,
   Post,
   Query,
+  Req,
   Res,
 } from '@nestjs/common';
+import type { RawBodyRequest } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Public } from '../../common/decorators/roles.decorator';
@@ -44,9 +47,14 @@ export class WhatsAppWebhookController {
     summary: 'Meta webhook intake endpoint with durable staging',
   })
   async handleWebhook(
+    @Req() req: RawBodyRequest<Request>,
     @Body() payload: any,
     @Headers('x-hub-signature-256') signature?: string,
   ) {
-    return this.webhookService.handleIncomingWebhook(payload, signature);
+    return this.webhookService.handleIncomingWebhook(
+      payload,
+      signature,
+      req?.rawBody,
+    );
   }
 }

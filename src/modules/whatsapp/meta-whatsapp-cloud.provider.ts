@@ -53,17 +53,42 @@ export class MetaWhatsAppCloudProvider {
   /**
    * Exchanges an Embedded Signup code for a long-lived access token.
    */
-  async exchangeCodeForToken(code: string): Promise<string> {
-    const url = `${this.baseUrl}/oauth/access_token?client_id=${encodeURIComponent(
+  async exchangeCodeForToken(code: string, redirectUri?: string): Promise<string> {
+    const defaultRedirectUri =
+      redirectUri ||
+      this.configService.get<string>('META_REDIRECT_URI') ||
+      'https://curtly-repaint-proofs.ngrok-free.dev/api/v1/whatsapp/oauth/callback';
+
+    const urlWithRedirect = `${this.baseUrl}/oauth/access_token?client_id=${encodeURIComponent(
+      this.appId,
+    )}&client_secret=${encodeURIComponent(this.appSecret)}&code=${encodeURIComponent(
+      code,
+    )}&redirect_uri=${encodeURIComponent(defaultRedirectUri)}`;
+
+    const urlWithoutRedirect = `${this.baseUrl}/oauth/access_token?client_id=${encodeURIComponent(
       this.appId,
     )}&client_secret=${encodeURIComponent(this.appSecret)}&code=${encodeURIComponent(code)}`;
 
     try {
-      const response = await this.executeFetch(url, {
-        method: 'GET',
-      });
+      // First attempt with redirect_uri (required by Meta when code is obtained via OAuth dialog)
+      let response = await this.executeFetch(urlWithRedirect, { method: 'GET' });
+      let data = await response.json();
 
-      const data = await response.json();
+      // If failed due to redirect_uri mismatch or not expected, fallback without redirect_uri
+      if (!response.ok && data?.error?.code === 100 && !data?.access_token) {
+        this.logger.warn(
+          `Initial token exchange with redirect_uri failed (${data?.error?.message}), falling back without redirect_uri`,
+        );
+        const fallbackResponse = await this.executeFetch(urlWithoutRedirect, {
+          method: 'GET',
+        });
+        const fallbackData = await fallbackResponse.json();
+        if (fallbackResponse.ok && fallbackData.access_token) {
+          response = fallbackResponse;
+          data = fallbackData;
+        }
+      }
+
       if (!response.ok || !data.access_token) {
         throw new MetaClientError(
           response.status,

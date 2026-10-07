@@ -79,7 +79,7 @@ export class WhatsAppService implements OnModuleInit, OnModuleDestroy {
         );
       }
       try {
-        accessToken = await this.metaProvider.exchangeCodeForToken(dto.code);
+        accessToken = await this.metaProvider.exchangeCodeForToken(dto.code, dto.redirectUri);
       } catch (err: any) {
         this.logger.error(
           `Failed to exchange Meta authorization code: ${err.message}`,

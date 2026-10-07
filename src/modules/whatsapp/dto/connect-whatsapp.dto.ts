@@ -48,4 +48,11 @@ export class ConnectWhatsAppDto {
   @IsOptional()
   @IsString()
   verifiedName?: string;
+
+  @ApiPropertyOptional({
+    description: 'OAuth redirect_uri used during code request',
+  })
+  @IsOptional()
+  @IsString()
+  redirectUri?: string;
 }
