@@ -1,22 +1,22 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 export class ConnectWhatsAppDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: '109876543210987',
     description: 'Meta WhatsApp Business Account ID (WABA ID)',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  wabaId: string;
+  wabaId?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: '100345678901234',
     description: 'Meta Phone Number ID',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  phoneNumberId: string;
+  phoneNumberId?: string;
 
   @ApiPropertyOptional({
     description:

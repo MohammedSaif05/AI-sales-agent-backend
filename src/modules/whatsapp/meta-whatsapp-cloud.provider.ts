@@ -23,6 +23,23 @@ export class MetaAmbiguousError extends Error {
   }
 }
 
+export interface AvailablePhoneNumber {
+  id: string;
+  display_phone_number: string;
+  verified_name?: string;
+  quality_rating?: string;
+}
+
+export interface ResolvedMetaAccountDetails {
+  accessToken: string;
+  wabaId?: string;
+  phoneNumberId?: string;
+  displayPhoneNumber?: string;
+  verifiedName?: string;
+  qualityRating?: string;
+  availablePhoneNumbers: AvailablePhoneNumber[];
+}
+
 export interface PhoneNumberDetails {
   display_phone_number: string;
   verified_name?: string;
@@ -261,6 +278,141 @@ export class MetaWhatsAppCloudProvider {
     }
 
     return { messageId };
+  }
+
+  
+  /**
+   * Resolves WABA ID and Phone Number ID from an access token
+   * via debug_token and Graph API business endpoints.
+   */
+  async resolveWabaAndPhoneNumbers(
+    accessToken: string,
+  ): Promise<ResolvedMetaAccountDetails> {
+    let wabaId: string | undefined;
+
+    // 1. Inspect token via debug_token with App Secret proof or App Token
+    try {
+      const appToken = `${this.appId}|${this.appSecret}`;
+      const debugUrl = `${this.baseUrl}/debug_token?input_token=${encodeURIComponent(
+        accessToken,
+      )}&access_token=${encodeURIComponent(appToken)}`;
+
+      const debugRes = await this.executeFetch(debugUrl, { method: 'GET' });
+      const debugData = await debugRes.json();
+
+      if (debugRes.ok && debugData?.data?.granular_scopes) {
+        for (const scopeItem of debugData.data.granular_scopes) {
+          if (
+            (scopeItem.scope === 'whatsapp_business_management' ||
+              scopeItem.scope === 'whatsapp_business_messaging') &&
+            Array.isArray(scopeItem.target_ids) &&
+            scopeItem.target_ids.length > 0
+          ) {
+            wabaId = String(scopeItem.target_ids[0]);
+            this.logger.log(`Resolved WABA ID from granular_scopes: ${wabaId}`);
+            break;
+          }
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`debug_token attempt failed: ${err.message}`);
+    }
+
+    // 2. Fallback: Query /me/whatsapp_business_accounts
+    if (!wabaId) {
+      try {
+        const meWabaUrl = `${this.baseUrl}/me/whatsapp_business_accounts`;
+        const meWabaRes = await this.executeFetch(meWabaUrl, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const meWabaData = await meWabaRes.json();
+        if (meWabaRes.ok && Array.isArray(meWabaData?.data) && meWabaData.data.length > 0) {
+          wabaId = String(meWabaData.data[0].id);
+          this.logger.log(`Resolved WABA ID from me/whatsapp_business_accounts: ${wabaId}`);
+        }
+      } catch (err: any) {
+        this.logger.warn(`me/whatsapp_business_accounts attempt failed: ${err.message}`);
+      }
+    }
+
+    // 3. Fallback: Query /me/businesses to discover WABA
+    if (!wabaId) {
+      try {
+        const bizUrl = `${this.baseUrl}/me/businesses?fields=id,name,owned_whatsapp_business_accounts,client_whatsapp_business_accounts`;
+        const bizRes = await this.executeFetch(bizUrl, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const bizData = await bizRes.json();
+        if (bizRes.ok && Array.isArray(bizData?.data)) {
+          for (const biz of bizData.data) {
+            const owned = biz.owned_whatsapp_business_accounts?.data;
+            if (Array.isArray(owned) && owned.length > 0) {
+              wabaId = String(owned[0].id);
+              break;
+            }
+            const client = biz.client_whatsapp_business_accounts?.data;
+            if (Array.isArray(client) && client.length > 0) {
+              wabaId = String(client[0].id);
+              break;
+            }
+          }
+        }
+      } catch (err: any) {
+        this.logger.warn(`me/businesses discovery attempt failed: ${err.message}`);
+      }
+    }
+
+    const availablePhoneNumbers: AvailablePhoneNumber[] = [];
+    let phoneNumberId: string | undefined;
+    let displayPhoneNumber: string | undefined;
+    let verifiedName: string | undefined;
+    let qualityRating: string | undefined;
+
+    // If WABA ID found, query its registered phone numbers
+    if (wabaId) {
+      try {
+        const phoneUrl = `${this.baseUrl}/${encodeURIComponent(
+          wabaId,
+        )}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating`;
+        const phoneRes = await this.executeFetch(phoneUrl, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const phoneData = await phoneRes.json();
+        if (phoneRes.ok && Array.isArray(phoneData?.data)) {
+          for (const item of phoneData.data) {
+            availablePhoneNumbers.push({
+              id: String(item.id),
+              display_phone_number: String(item.display_phone_number || ''),
+              verified_name: item.verified_name || undefined,
+              quality_rating: item.quality_rating || undefined,
+            });
+          }
+          if (availablePhoneNumbers.length > 0) {
+            const primary = availablePhoneNumbers[0];
+            phoneNumberId = primary.id;
+            displayPhoneNumber = primary.display_phone_number;
+            verifiedName = primary.verified_name;
+            qualityRating = primary.quality_rating;
+            this.logger.log(`Resolved primary Phone Number ID: ${phoneNumberId} (${displayPhoneNumber})`);
+          }
+        }
+      } catch (err: any) {
+        this.logger.warn(`Error querying phone numbers for WABA ${wabaId}: ${err.message}`);
+      }
+    }
+
+    return {
+      accessToken,
+      wabaId,
+      phoneNumberId,
+      displayPhoneNumber,
+      verifiedName,
+      qualityRating,
+      availablePhoneNumbers,
+    };
   }
 
   private async executeFetch(

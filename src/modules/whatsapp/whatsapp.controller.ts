@@ -38,6 +38,19 @@ export class WhatsAppController {
     private readonly messagingService: WhatsAppMessagingService,
   ) {}
 
+    @Post('resolve-code')
+  @Roles('OWNER')
+  @ApiOperation({
+    summary: 'Exchange Meta authorization code and auto-resolve WABA ID and Phone Number ID',
+  })
+  async resolveCode(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body('code') code: string,
+    @Body('redirectUri') redirectUri?: string,
+  ) {
+    return this.whatsappService.resolveCode(user.businessId!, code, redirectUri);
+  }
+
   @Post('connect')
   @Roles('OWNER')
   @ApiOperation({
