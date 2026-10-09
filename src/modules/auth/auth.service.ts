@@ -76,7 +76,7 @@ export class AuthService {
           phone: canonicalPhone,
           address: dto.businessAddress,
           city: dto.businessCity,
-          state: dto.businessState || 'Maharashtra',
+          state: dto.businessState || null,
           country: 'India',
           pincode: dto.businessPincode,
           email: dto.businessEmail,

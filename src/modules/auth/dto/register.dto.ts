@@ -54,7 +54,7 @@ export class RegisterOwnerDto {
   @ApiPropertyOptional({ example: 'Maharashtra', description: 'State' })
   @IsOptional()
   @IsString()
-  businessState?: string = 'Maharashtra';
+  businessState?: string;
 
   @ApiPropertyOptional({
     example: 'contact@sharmatextiles.com',
